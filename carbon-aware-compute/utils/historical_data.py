@@ -1,6 +1,7 @@
 from typing import Union
 from datetime import datetime
 import pandas as pd
+import plotly.express as px
 from watttime import WattTimeHistorical
 
 
@@ -60,13 +61,18 @@ def fetch_carbon_intensity(
         else:
             # Re-raise the original exception
             raise
+        
+
+def graph_carbon_intensity(df: pd.DataFrame) -> None:
+    fig = px.line(df, x="point_time", y="value").show()
+    fig.show()
 
 
 if __name__ == "__main__":
     # Example usage
     df = fetch_carbon_intensity(
-        start_time="2023-01-01T00:00:00Z",
-        end_time="2023-01-02T00:00:00Z",
+        start_time="2025-04-15T00:00:00Z",
+        end_time="2025-04-21T00:00:00Z",
         region="CAISO_NORTH"
     )
-    print(df.head())
+    graph_carbon_intensity(df)

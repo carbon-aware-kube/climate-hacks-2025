@@ -64,15 +64,80 @@ def fetch_carbon_intensity(
         
 
 def graph_carbon_intensity(df: pd.DataFrame) -> None:
-    fig = px.line(df, x=df.index, y="value").show()
-    fig.show()
+    px.line(df, x=df.index, y="value").show()
 
 
 if __name__ == "__main__":
-    # Example usage
-    df = fetch_carbon_intensity(
-        start_time="2025-04-15T00:00:00Z",
-        end_time="2025-04-21T00:00:00Z",
-        region="CAISO_NORTH"
-    )
-    graph_carbon_intensity(df)
+    # Fetch historical data for the last year (April 23, 2024 to April 22, 2025)
+    # We need to fetch month by month since the API can only handle one month at a time
+    from datetime import datetime
+    import pandas as pd
+    
+    # Set the region
+    region = "CAISO_NORTH"
+    
+    # Set end date to current day (April 22, 2025)
+    end_date = datetime(2025, 4, 22)
+    
+    # Set start date to one year ago (April 23, 2024)
+    start_date = datetime(2024, 4, 23)
+    
+    # Initialize an empty list to store all monthly dataframes
+    all_data = []
+    
+    # Current date for iteration
+    current_start = start_date
+    
+    print(f"Fetching carbon intensity data for {region} from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}...")
+    
+    # Loop through each month
+    while current_start < end_date:
+        # Calculate the end of the current month period (or end_date if it's the last period)
+        # Add one month to current_start
+        if current_start.month == 12:
+            next_month = datetime(current_start.year + 1, 1, current_start.day)
+        else:
+            next_month = datetime(current_start.year, current_start.month + 1, current_start.day)
+        
+        # If next_month is beyond our end_date, use end_date instead
+        current_end = min(next_month, end_date)
+        
+        print(f"Fetching data from {current_start.strftime('%Y-%m-%d')} to {current_end.strftime('%Y-%m-%d')}...")
+        
+        try:
+            # Format dates for the API
+            start_str = current_start.strftime("%Y-%m-%dT00:00:00Z")
+            end_str = current_end.strftime("%Y-%m-%dT23:59:59Z")
+            
+            # Fetch data for the current month
+            monthly_df = fetch_carbon_intensity(
+                start_time=start_str,
+                end_time=end_str,
+                region=region
+            )
+            
+            # Add to our list of dataframes
+            all_data.append(monthly_df)
+            print(f"Successfully fetched data for period ending {current_end.strftime('%Y-%m-%d')}")
+            
+        except Exception as e:
+            print(f"Error fetching data for period {current_start.strftime('%Y-%m-%d')} to {current_end.strftime('%Y-%m-%d')}: {str(e)}")
+        
+        # Move to the next month
+        current_start = next_month
+    
+    # Combine all monthly data into a single dataframe
+    if all_data:
+        combined_df = pd.concat(all_data)
+        print(f"Combined data contains {len(combined_df)} records from {combined_df.index.min()} to {combined_df.index.max()}")
+        
+        # Save the combined data
+        output_file = f"carbon_intensity_{region}_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}.csv"
+        combined_df.to_csv(output_file)
+        print(f"Data saved to {output_file}")
+        
+        # Generate a graph of the data
+        print("Generating graph...")
+        graph_carbon_intensity(combined_df)
+    else:
+        print("No data was fetched successfully.")

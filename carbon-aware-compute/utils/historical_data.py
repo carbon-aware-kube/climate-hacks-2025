@@ -47,8 +47,8 @@ def fetch_carbon_intensity(
         if 'point_time' not in df.columns or 'value' not in df.columns:
             raise ValueError("Unexpected data format from WattTime API")
         
-        # Sort by time for consistency
-        df = df.sort_values('point_time')
+        # Index the dataframe by point_time
+        df = df.set_index('point_time')
         
         return df
     
@@ -64,7 +64,7 @@ def fetch_carbon_intensity(
         
 
 def graph_carbon_intensity(df: pd.DataFrame) -> None:
-    fig = px.line(df, x="point_time", y="value").show()
+    fig = px.line(df, x=df.index, y="value").show()
     fig.show()
 
 
